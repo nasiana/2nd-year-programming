@@ -1,0 +1,162 @@
+// includes and define
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <ctime>
+#include <algorithm> 
+
+using namespace std;
+
+//Initialise vectors
+vector< vector<double> > read_file(string filename) {
+	// reads in a csv file
+	//2D string vector is returned
+
+	ifstream inputFile(filename);
+	vector < vector<double> > data; //matrix output
+	if (inputFile.is_open()) {
+		string line; // line from the file
+		vector <string> dataline; // line from the file as a string vector
+		vector <double> latlongpop;
+		int i = 0; // line number
+		int comma_position; // position of comma
+
+		while (!inputFile.eof()) {
+			getline(inputFile, line); //reads line into line
+			if (line != "" & i != 0) {
+				do {
+					comma_position = line.find(',', 0); //deleminator position found from this
+					dataline.push_back(line.substr(0, comma_position)); // the string before the comma goes into dataline
+					line = line.substr(comma_position + 1, line.length() - comma_position - 1); // delete the comma before the string
+				} while (comma_position != -1); //no more comma --> exit
+
+				latlongpop.push_back(stod(dataline[2]));
+				latlongpop.push_back(stod(dataline[3]));
+				latlongpop.push_back(stod(dataline[4]));
+				cout << "pop:  " <<latlongpop[0] << "  lat:  " << latlongpop[1] << "   lon:  " << latlongpop[2] << "\n";
+				data.push_back(latlongpop); // add latlong to data
+				dataline.clear(); //delete dataline
+				latlongpop.clear(); //delete latlongpop
+			}
+			i++;
+		}
+
+	}
+	else
+	{
+		cout << "File didnt open \n";
+	}
+	return data;
+}
+
+
+double random_number(double upper, double lower, int n) {
+	// random number between lower and higher, n <- smoothness
+	double r;
+	r = lower + (rand() % (n + 1) * (1. / n) * (upper - lower));
+	return r;
+}
+
+double sin2(double x)
+// returns the sin^2 (x) 
+{
+	double sin2 = sin(x)*sin(x);
+
+	return sin2;
+}
+
+double distance(double lat1, double long1, double lat2, double long2) {
+	// distance between two location with long,lat,1,2
+
+	double R = 3958.75;
+	lat1 = lat1 * 0.0174533;
+	lat2 = lat2 * 0.0174533;
+	long1 = long1 * 0.0174533;
+	long2 = long2 * 0.0174533;
+	double dLat = lat2 - lat1;
+	double dLong = long2 - long1;
+	double a = sin2(dLat / 2) + cos(lat1)*cos(lat2)*sin2(dLong / 2);
+	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+	double distance = R * c;
+
+	return distance;
+}
+
+double fitness(double lat, double lon, vector < vector<double> > data) {
+	double weighted_distance = 0;
+	for (int i = 0; i < data.size(); i++) {
+		weighted_distance = weighted_distance + data[i][0] * distance(lat,lon,data[i][1],data[i][2]);
+	}
+	return weighted_distance;
+}
+
+int main() {
+
+	vector < vector<double> > data = read_file("GBplaces.csv");
+	// pop	lat	lon
+
+	double dlat, dlon, glat, glon;
+	double newValue, oldValue;
+	double globalMin = INFINITY;
+
+	srand(time(NULL));
+
+	for (int k = 0; k < 500; k++) {
+		cout << k<<"\n";
+		// pick a random starting point for x and y
+		double lat = random_number(50,60, 100);
+		double lon = random_number(-6, 2, 100);
+
+		double step = 0.2;
+
+		// work out the value of the function at point x,y
+		double value = fitness(lat, lon, data);
+
+		for (int i = 1; i < 5; i++) {
+			do {
+				// look around the current point and see if can go somewhere where value is higher
+				oldValue = value;
+
+				step = step / (i*i); // if a local minumum (aproximation) is found decreases the step size
+
+				for (int i = -1; i <= 1; i++) {
+					for (int j = -1; j <= 1; j++) {
+						if (i == 0 && j == 0) {
+						}
+						else {
+							newValue = fitness(lat + step * i, lon + step * j, data);
+							if (newValue <= value) {
+								dlat = i;
+								dlon = j;
+								value = newValue;
+							}
+						}
+					}
+				}
+
+				// update to new position and new value
+				//value = maxValue;
+				lat = lat + step * dlat;
+				lon = lon + step * dlon;
+
+			} while (value > oldValue);
+		}
+
+		if (value < globalMin) {
+			globalMin = value;
+			glat = lat;
+			glon = lon;
+		}
+
+
+	}
+
+	cout <<"lat: " << glat << "   lon: " << glon << " -> " << globalMin << "\n";
+
+	cout << "Press enter to exit...";
+	string exit_string;
+	getline(cin, exit_string);
+
+	return 0;
+}
