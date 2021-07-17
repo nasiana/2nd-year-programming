@@ -1,0 +1,77 @@
+# importing modules
+import matplotlib.pyplot as plt;
+import matplotlib.patches as mpatches;
+
+# opens file and displays error message if file isn't able to be displayed
+try:
+        readFile = open("GBplaces.csv","r");
+
+except:
+        print("An error occured, the file 'GBplaces.csv' has failed to open.");
+
+# these are the empty arrays - each variable corresponds to a column
+# store data in these list variables 
+# create empty lists (arrays) place, town/city, population, latitude, longitude, colour    
+names=[]
+town_city=[]
+population=[]
+latitude=[]
+longitude=[]
+colour=[]
+
+
+# define initial to be false so as to skip header line
+initial = False;
+
+# for loop to read the file line by line and split the data into 5 different arrays - going by collumn
+# read in the file line by line
+for line in readFile:
+    if initial:
+        
+# split the input line based on a comma (excel will be able to read this)
+        organizer = line.split(',');
+        
+# store the values in the arrays
+        names.append(organizer[0]);
+        town_city.append(organizer[1]);
+        population.append(int(organizer[2]));
+        latitude.append(float(organizer[3]));
+        longitude.append(float(organizer[4]));
+    initial = True;
+
+# close the file
+readFile.close()
+
+# this sorts the population but reverses them so largest populations shown first
+sortedPopulation = sorted(population, reverse=True)
+
+# setting thes size of the plotted points to reflect the population size of each city but dividing the sizes 
+area = [ x/10000 for x in sortedPopulation]
+
+# colour coding towns orange and cities red
+for i in town_city:
+    if i == 'Town':
+        colour.append('orange')
+    elif i == 'City':
+        colour.append('red')
+
+# plotting longitude against latitude
+for i in range(0, len(sortedPopulation)):
+    plt.scatter(longitude[population.index(sortedPopulation[i])],latitude[population.index(sortedPopulation[i])], s=area[i], alpha=0.5, color=colour[population.index(sortedPopulation[i])], label=str(colour[population.index(sortedPopulation[i])]))
+
+# this is to have the colour key displaying town and city and indicating the colour red or orange
+orange = mpatches.Patch(color='orange', alpha=0.5, label='Town')
+red = mpatches.Patch(color='red', alpha=0.5, label='City')
+plt.legend(handles=[orange, red], loc='upper right')
+
+# labelling the axes and giving the plot a title
+plt.xlabel("Longtitude");
+plt.ylabel("Latitude");
+plt.title("Visualization of GBPlaces - area of point proportional to population size");
+
+# display the 10 most populated towns/cities from sorted list 
+for i in range(0,10):
+    plt.annotate(str(names[population.index(sortedPopulation[i])]), (longitude[population.index(sortedPopulation[i])],latitude[population.index(sortedPopulation[i])]))
+
+# display the plot
+plt.show()
